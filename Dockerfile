@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # The jar is platform-independent: build it natively, even for the arm64 image (no emulation).
-FROM --platform=$BUILDPLATFORM maven:3.9.11-eclipse-temurin-21 AS build
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /src
 COPY pom.xml .
 RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
