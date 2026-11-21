@@ -21,8 +21,6 @@ It is the kind of workload the [Azure hybrid manufacturing platform](https://git
   <img alt="Architecture: planners and operators call the Spring Boot REST API with JWTs issued by the identity provider; the API writes the order and its outbox event to PostgreSQL in one transaction; material is reserved in the ERP through Resilience4j with a timeout, retries and a circuit breaker, keyed by order number; an outbox relay publishes events to Kafka or Event Hubs; Prometheus scrapes metrics from the management port 8081." src="docs/diagrams/architecture-light.svg" width="100%">
 </picture>
 
-<sub>Animated diagrams generated from <a href="docs/diagrams/diagrams.yaml">docs/diagrams/diagrams.yaml</a> with <a href="https://github.com/santoshmyakala/santoshmyakala/tree/main/tools/archdiagram">archdiagram</a>.</sub>
-
 ## API
 
 | Method | Path | Role | Notes |
