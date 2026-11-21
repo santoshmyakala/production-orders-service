@@ -1,0 +1,44 @@
+- out: architecture
+  title: Production orders service
+  subtitle: State change and its event commit together (outbox) · ERP calls behind timeout, retry and circuit breaker · JWT roles per shop-floor duty
+  grid: {dx: 270, dy: 165}
+  nodes:
+    - {id: users, label: Planners · operators, sub: MES UI · line terminals, icon: users, at: [0, 0], color: gray}
+    - {id: idp, label: Identity provider, sub: OIDC · roles claim, icon: openid, at: [0, 1], color: purple}
+    - {id: api, label: Spring Boot 4 REST API, sub: Idempotency-Key · ETag / If-Match · RFC 9457, icon: [java, shield], at: [1.2, 0], color: orange, pulse: true}
+    - {id: relay, label: Outbox relay, sub: SKIP LOCKED · at-least-once, icon: queue, at: [2.3, 1], color: amber}
+    - {id: cb, label: Resilience4j, sub: 2 s timeout · 3 tries · breaker, icon: gateway, at: [2.3, 0], color: red}
+    - {id: db, label: PostgreSQL, sub: orders + outbox · Flyway, icon: postgresql, at: [1.2, 1], color: blue}
+    - {id: erp, label: ERP / warehouse, sub: material reservations, icon: server, at: [3.4, 0], color: gray}
+    - {id: broker, label: Event broker, sub: Kafka · Event Hubs, icon: topic, at: [3.4, 1], color: teal}
+    - {id: prom, label: Prometheus, sub: SLOs · breaker state · outbox lag, icon: prometheus, at: [1.2, -0.95], color: amber}
+  edges:
+    - {from: users, to: api, label: JWT, kind: secure, packet: lock}
+    - {from: idp, to: users, label: tokens, kind: control}
+    - {from: api, to: db, label: one transaction, kind: data, packet: db}
+    - {from: api, to: cb, label: reserve, kind: data}
+    - {from: cb, to: erp, label: keyed by order no., kind: data}
+    - {from: db, to: relay, kind: async}
+    - {from: relay, to: broker, label: events, kind: async, packet: doc}
+    - {from: api, to: prom, label: /actuator on :8081, kind: control}
+
+- out: github-actions
+  title: Delivery with GitHub Actions
+  subtitle: Every change is tested against real PostgreSQL; only commits that passed ci are published, as a signed multi-arch image
+  grid: {dx: 265, dy: 150}
+  nodes:
+    - {id: pr, label: Pull request, icon: git, at: [0, 0], color: gray}
+    - {id: test, label: mvn verify, sub: JUnit · Testcontainers · JaCoCo, icon: [java, check], at: [1, 0], color: orange}
+    - {id: man, label: Manifests, sub: kustomize · kubeconform, icon: kubernetes, at: [1, 1], color: blue}
+    - {id: img, label: Image scan, sub: distroless · Trivy, icon: [docker, trivy], at: [2, 1], color: amber}
+    - {id: ghcr, label: GHCR, sub: linux/amd64 + arm64, icon: registry, at: [2, 0], color: purple, pulse: true}
+    - {id: sign, label: cosign + attestations, sub: keyless · SBOM · SLSA provenance, icon: [signature, sbom], at: [3, 0], color: green}
+    - {id: gw, label: Guardrails webhook, sub: digest-pinned images only, icon: [kubernetes, shield], at: [3, 1], color: green}
+  edges:
+    - {from: pr, to: test, kind: control}
+    - {from: pr, to: man, kind: control, via: [[0, 1]]}
+    - {from: test, to: ghcr, label: ci green on main / v*, kind: secure, packet: lock}
+    - {from: man, to: img, kind: data}
+    - {from: img, to: ghcr, kind: data}
+    - {from: ghcr, to: sign, label: by digest, kind: secure}
+    - {from: sign, to: gw, label: deploy, kind: data}

@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: production-orders
+resources: [deployment.yaml]
+images:
+  - name: production-orders-service
+    newName: ghcr.io/santoshmyakala/production-orders-service
+    newTag: main # release overlays pin the signed digest
