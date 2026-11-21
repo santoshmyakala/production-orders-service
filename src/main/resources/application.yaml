@@ -1,0 +1,92 @@
+spring:
+  application:
+    name: production-orders-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/orders}
+    username: ${DATABASE_USER:orders}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 3000 # ms
+      # no query may hold a connection for long; also bounds lock waits
+      connection-init-sql: SET statement_timeout = '5s'
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate # Flyway owns the schema
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:https://login.example.com/}
+          audiences: ${OIDC_AUDIENCE:api://production-orders}
+
+server:
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+
+logging:
+  structured:
+    format:
+      console: ecs # JSON logs with trace/span ids when tracing is enabled
+
+management:
+  server:
+    port: 8081 # probes and metrics on a separate port, not exposed through the ingress
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState, db
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+orders:
+  erp:
+    base-url: ${ERP_BASE_URL:http://erp.internal}
+    connect-timeout: 1s
+    read-timeout: 2s
+  outbox:
+    poll-interval: 1s
+    batch-size: 100
+
+resilience4j:
+  retry:
+    instances:
+      erp:
+        max-attempts: 3
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+  circuitbreaker:
+    instances:
+      erp:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 1500ms
+        slow-call-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        ignore-exceptions:
+          - io.github.santoshmyakala.orders.material.InsufficientMaterialException
+        register-health-indicator: false # an open breaker must not make Kubernetes restart this service
