@@ -1,0 +1,23 @@
+# Base-image OS packages in gcr.io/distroless/java21-debian12:nonroot.
+#
+# Distroless images have no package manager, so these Debian packages cannot be upgraded in this
+# Dockerfile; they clear when Google rebuilds the base image with the patched packages (tracked by
+# Dependabot's docker updates, which bump the pinned base). None of these are in the application's
+# own jars — the Java dependencies scan clean — and none of these native libraries (expat XML
+# parsing, brotli, Little CMS colour management) is loaded by this headless HTTP service.
+#
+# Reviewed 2026-11-21. Remove entries as the base image picks up the fixes.
+
+# libexpat1 — XML parser (C). Not used by this service.
+CVE-2024-28757
+CVE-2025-59375
+CVE-2026-25210
+CVE-2026-45186
+CVE-2026-66046
+CVE-2026-76957
+CVE-2026-77214
+CVE-2026-93990
+# libbrotli1 — Brotli decoder.
+CVE-2026-111497
+# liblcms2-2 — Little CMS colour management.
+CVE-2026-41254

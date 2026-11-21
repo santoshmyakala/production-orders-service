@@ -81,6 +81,7 @@ jobs:
           image-ref: production-orders-service:ci
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          trivyignores: .trivyignore # justified, dated base-image OS CVEs; application jars are not ignored
           exit-code: "1"
 
   secret-scan:
